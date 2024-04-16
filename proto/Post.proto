@@ -10,7 +10,7 @@ service Post {
 }
 
 message CreatePostReq {
-  UserEntity owner = 1;
+  string OwnerEmail = 1;
   string Title = 2;
   string Body = 3;
 }
