@@ -11,6 +11,6 @@ message UserEntity {
 message PostEntity {
   string Title = 1;
   string Body = 2;
-  UserEntity owner = 3;
+  string OwnerEmail = 3;
 }
 message Empty {}
