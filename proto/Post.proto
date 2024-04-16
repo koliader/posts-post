@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+option go_package = "github.com/koliader/posts-gateway/internal/pb";
+import "Entities.proto";
+
+service Post {
+  rpc CreatePost(CreatePostReq) returns (CreatePostRes) {}
+  rpc GetPost(GetPostReq) returns (GetPostRes) {}
+  rpc ListPosts(Empty) returns (ListPostsRes) {}
+}
+
+message CreatePostReq {
+  UserEntity owner = 1;
+  string Title = 2;
+  string Body = 3;
+}
+
+message CreatePostRes {
+  PostEntity post = 1;
+}
+
+message GetPostReq {
+  string Title = 1;
+}
+
+message GetPostRes {
+  PostEntity Post = 1;
+}
+
+message ListPostsRes {
+  repeated PostEntity Posts = 1;
+}
+
