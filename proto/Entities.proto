@@ -3,14 +3,14 @@ syntax = "proto3";
 option go_package = "github.com/koliader/posts-gateway/internal/pb";
 
 message UserEntity {
-  string Email = 1;
-  string Username = 2;
-  string Password = 3;
+  string email = 1;
+  string username = 2;
+  string password = 3;
 }
 
 message PostEntity {
-  string Title = 1;
-  string Body = 2;
-  string OwnerEmail = 3;
+  string title = 1;
+  string body = 2;
+  string ownerEmail = 3;
 }
 message Empty {}
