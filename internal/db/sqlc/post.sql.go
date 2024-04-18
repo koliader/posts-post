@@ -67,3 +67,47 @@ func (q *Queries) ListPosts(ctx context.Context) ([]Post, error) {
 	}
 	return items, nil
 }
+
+const listPostsByOwner = `-- name: ListPostsByOwner :many
+SELECT title, body, owner FROM posts
+WHERE owner = $1
+`
+
+func (q *Queries) ListPostsByOwner(ctx context.Context, owner string) ([]Post, error) {
+	rows, err := q.db.Query(ctx, listPostsByOwner, owner)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Post{}
+	for rows.Next() {
+		var i Post
+		if err := rows.Scan(&i.Title, &i.Body, &i.Owner); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const updatePostOwner = `-- name: UpdatePostOwner :one
+UPDATE posts
+SET owner = $2
+WHERE title = $1
+RETURNING title, body, owner
+`
+
+type UpdatePostOwnerParams struct {
+	Title string `json:"title"`
+	Owner string `json:"owner"`
+}
+
+func (q *Queries) UpdatePostOwner(ctx context.Context, arg UpdatePostOwnerParams) (Post, error) {
+	row := q.db.QueryRow(ctx, updatePostOwner, arg.Title, arg.Owner)
+	var i Post
+	err := row.Scan(&i.Title, &i.Body, &i.Owner)
+	return i, err
+}

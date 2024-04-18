@@ -48,3 +48,16 @@ func TestGetPostByTitle(t *testing.T) {
 	require.Equal(t, post1.Title, post1.Title)
 	require.Equal(t, post1.Owner, post1.Owner)
 }
+
+func TestUpdatePostOwner(t *testing.T) {
+	post1 := createRandomPost(t)
+	arg := db.UpdatePostOwnerParams{
+		Owner: post1.Owner,
+		Title: post1.Title,
+	}
+	post2, err := testStore.UpdatePostOwner(context.Background(), arg)
+	require.NoError(t, err)
+	require.NotEmpty(t, post2)
+
+	require.Equal(t, arg.Owner, post2.Owner)
+}

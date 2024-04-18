@@ -24,6 +24,5 @@ services:
       postgres:
         condition: service_healthy
 
-    # entrypoint: ["/app/wait-for.sh", "postgres:5432", "--", "/app/start.sh"]
     entrypoint: ["/app/start.sh"]
     command: ["/app/main"]

@@ -10,6 +10,16 @@ INSERT INTO posts (
 -- name: ListPosts :many
 SELECT * FROM posts;
 
+-- name: ListPostsByOwner :many
+SELECT * FROM posts
+WHERE owner = $1;
+
 -- name: GetPostByTitle :one
 SELECT * FROM posts
 WHERE title = $1;
+
+-- name: UpdatePostOwner :one
+UPDATE posts
+SET owner = $2
+WHERE title = $1
+RETURNING *;

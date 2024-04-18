@@ -6,6 +6,7 @@ require (
 	github.com/jackc/pgx/v5 v5.5.5
 	github.com/rs/zerolog v1.32.0
 	github.com/spf13/viper v1.18.2
+	github.com/streadway/amqp v1.1.0
 	github.com/stretchr/testify v1.8.4
 	google.golang.org/grpc v1.63.2
 	google.golang.org/protobuf v1.33.0

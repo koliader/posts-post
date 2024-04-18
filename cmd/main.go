@@ -33,7 +33,19 @@ func main() {
 	defer connPool.Close()
 
 	store := db.NewStore(connPool)
-	runGrpcServer(config, store)
+
+	go runGrpcServer(config, store)
+
+	server, err := grpc_service.NewServer(config, store)
+	if err != nil {
+		log.Fatal().Msgf("error creating gRPC server: %v", err)
+	}
+	err = server.StartConsumer()
+	if err != nil {
+		log.Fatal().Msgf("error starting RabbitMQ consumer: %v", err)
+	}
+
+	select {}
 }
 
 func runGrpcServer(config util.Config, store db.Store) {

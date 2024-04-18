@@ -7,6 +7,7 @@ service Post {
   rpc CreatePost(CreatePostReq) returns (CreatePostRes) {}
   rpc GetPost(GetPostReq) returns (GetPostRes) {}
   rpc ListPosts(Empty) returns (ListPostsRes) {}
+  rpc ListPostsByUser(ListPostsByUserReq) returns (ListPostsRes) {}
 }
 
 message CreatePostReq {
@@ -27,7 +28,10 @@ message GetPostRes {
   PostEntity post = 1;
 }
 
+message ListPostsByUserReq {
+  string owner = 1;
+}
+
 message ListPostsRes {
   repeated PostEntity Posts = 1;
 }
-

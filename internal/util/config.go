@@ -9,6 +9,7 @@ type Config struct {
 	DBSource      string `mapstructure:"DB_SOURCE"`
 	ServerAddress string `mapstructure:"SERVER_ADDRESS"`
 	Environment   string `mapstructure:"ENVIRONMENT"`
+	RbmUrl        string `mapstructure:"RBM_URL"`
 }
 
 func LoadConfig(path string) (config Config, err error) {
