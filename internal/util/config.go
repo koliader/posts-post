@@ -10,6 +10,8 @@ type Config struct {
 	ServerAddress string `mapstructure:"SERVER_ADDRESS"`
 	Environment   string `mapstructure:"ENVIRONMENT"`
 	RbmUrl        string `mapstructure:"RBM_URL"`
+	RedisUrl      string `mapstructure:"REDIS_URL"`
+	RedisDBNumber int    `mapstructure:"REDIS_DB_NUMBER"`
 }
 
 func LoadConfig(path string) (config Config, err error) {

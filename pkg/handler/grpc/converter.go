@@ -13,3 +13,11 @@ func convertPost(post db.Post) *pb.PostEntity {
 	}
 	return &converted
 }
+
+func convertPosts(posts []db.Post) []*pb.PostEntity {
+	var converted []*pb.PostEntity
+	for _, post := range posts {
+		converted = append(converted, convertPost(post))
+	}
+	return converted
+}

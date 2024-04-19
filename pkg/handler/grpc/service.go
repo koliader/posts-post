@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/go-redis/redis/v8"
 	"github.com/jackc/pgx/v5"
 	db "github.com/koliader/posts-post.git/internal/db/sqlc"
 	"github.com/koliader/posts-post.git/internal/pb"
@@ -30,6 +31,18 @@ func (s *Server) CreatePost(ctx context.Context, req *pb.CreatePostReq) (*pb.Cre
 		}
 		return nil, errorResponse(codes.Unimplemented, "error creating post")
 	}
+	posts, err := s.store.ListPostsByOwner(ctx, req.GetOwner())
+	if err != nil {
+		return nil, errorResponse(codes.Internal, fmt.Sprintf("error to list posts: %v", err))
+	}
+	jsonStringPosts, err := json.Marshal(posts)
+	if err != nil {
+		return nil, errorResponse(codes.Internal, "error to marshal posts")
+	}
+	err = s.redisClient.Set("posts", jsonStringPosts)
+	if err != nil {
+		return nil, errorResponse(codes.Internal, "error to set value to redis")
+	}
 	res := pb.CreatePostRes{
 		Post: convertPost(post),
 	}
@@ -53,33 +66,68 @@ func (s *Server) GetPost(ctx context.Context, req *pb.GetPostReq) (*pb.GetPostRe
 
 // * ListPosts
 func (s *Server) ListPosts(ctx context.Context, req *pb.Empty) (*pb.ListPostsRes, error) {
-	var converted []*pb.PostEntity
-
-	posts, err := s.store.ListPosts(ctx)
+	redisPosts, err := s.redisClient.Get("posts")
+	if err == redis.Nil {
+		posts, err := s.store.ListPosts(ctx)
+		if err != nil {
+			return nil, errorResponse(codes.Unimplemented, "error to list posts")
+		}
+		converted := convertPosts(posts)
+		jsonStringPosts, err := json.Marshal(posts)
+		if err != nil {
+			return nil, errorResponse(codes.Internal, fmt.Sprintf("error to marshal posts: %v", err))
+		}
+		err = s.redisClient.Set("posts", jsonStringPosts)
+		if err != nil {
+			return nil, errorResponse(codes.Internal, fmt.Sprintf("error to set posts to redis: %v", err))
+		}
+		res := pb.ListPostsRes{
+			Posts: converted,
+		}
+		return &res, nil
+	}
+	var jsonPosts []db.Post
+	err = json.Unmarshal([]byte(*redisPosts), &jsonPosts)
 	if err != nil {
-		return nil, errorResponse(codes.Unimplemented, "error to list posts")
+		return nil, errorResponse(codes.Internal, fmt.Sprintf("error to unmarshal users %v", err))
 	}
-	for _, post := range posts {
-		converted = append(converted, convertPost(post))
-	}
+	convertedPosts := convertPosts(jsonPosts)
 	res := pb.ListPostsRes{
-		Posts: converted,
+		Posts: convertedPosts,
 	}
 	return &res, nil
 }
 
 func (s *Server) ListPostsByUser(ctx context.Context, req *pb.ListPostsByUserReq) (*pb.ListPostsRes, error) {
-	var converted []*pb.PostEntity
-
-	posts, err := s.store.ListPostsByOwner(ctx, req.GetOwner())
+	key := fmt.Sprintf("posts:%v", req.Owner)
+	redisPosts, err := s.redisClient.Get(key)
+	if err == redis.Nil {
+		posts, err := s.store.ListPostsByOwner(ctx, req.Owner)
+		if err != nil {
+			return nil, errorResponse(codes.Unimplemented, "error to list posts")
+		}
+		converted := convertPosts(posts)
+		jsonStringPosts, err := json.Marshal(posts)
+		if err != nil {
+			return nil, errorResponse(codes.Internal, fmt.Sprintf("error to marshal posts: %v", err))
+		}
+		err = s.redisClient.Set(key, jsonStringPosts)
+		if err != nil {
+			return nil, errorResponse(codes.Internal, fmt.Sprintf("error to set posts to redis: %v", err))
+		}
+		res := pb.ListPostsRes{
+			Posts: converted,
+		}
+		return &res, nil
+	}
+	var jsonPosts []db.Post
+	err = json.Unmarshal([]byte(*redisPosts), &jsonPosts)
 	if err != nil {
-		return nil, errorResponse(codes.Unimplemented, "error to list posts")
+		return nil, errorResponse(codes.Internal, fmt.Sprintf("error to unmarshal users %v", err))
 	}
-	for _, post := range posts {
-		converted = append(converted, convertPost(post))
-	}
+	convertedPosts := convertPosts(jsonPosts)
 	res := pb.ListPostsRes{
-		Posts: converted,
+		Posts: convertedPosts,
 	}
 	return &res, nil
 }
@@ -109,6 +157,7 @@ func (s *Server) StartConsumer() error {
 			if err != nil {
 				log.Fatal().Msg("error to list user posts")
 			}
+			// update each post
 			for _, post := range userPosts {
 				arg := db.UpdatePostOwnerParams{
 					Owner: msgBody.NewEmail,
@@ -118,6 +167,37 @@ func (s *Server) StartConsumer() error {
 				if err != nil {
 					log.Fatal().Msg(fmt.Sprintf("Error to update post owner: %v", err))
 				}
+			}
+			// get all posts and update cash
+			updatedPosts, err := s.store.ListPosts(context.Background())
+			if err != nil {
+				log.Fatal().Msg("error to list posts")
+			}
+			jsonStringPosts, err := json.Marshal(updatedPosts)
+			if err != nil {
+				log.Fatal().Msg(fmt.Sprintf("error to marshal posts: %v", err))
+			}
+			err = s.redisClient.Set("posts", jsonStringPosts)
+			if err != nil {
+				log.Fatal().Msg(fmt.Sprintf("error to set posts to redis: %v", err))
+			}
+
+			// update user posts
+			updatedUserPosts, err := s.store.ListPostsByOwner(context.Background(), msgBody.NewEmail)
+			if err != nil {
+				log.Fatal().Msg("error to list posts by owner")
+			}
+			jsonStringUserPosts, err := json.Marshal(updatedUserPosts)
+			if err != nil {
+				log.Fatal().Msg(fmt.Sprintf("error to marshal posts: %v", err))
+			}
+			err = s.redisClient.Set(fmt.Sprintf("posts:%v", msgBody.NewEmail), jsonStringUserPosts)
+			if err != nil {
+				log.Fatal().Msg(fmt.Sprintf("error to set posts to redis: %v", err))
+			}
+			err = s.redisClient.DeleteKey(fmt.Sprintf("posts:%v", msgBody.Email))
+			if err != nil {
+				log.Fatal().Msg(fmt.Sprintf("error to delete redis key: %v", err))
 			}
 		}
 	}()
