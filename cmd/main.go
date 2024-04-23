@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"os"
 
@@ -51,7 +52,7 @@ func main() {
 func runGrpcServer(config util.Config, store db.Store) {
 	server, err := grpc_service.NewServer(config, store)
 	if err != nil {
-		log.Fatal().Msg("cannot create server")
+		log.Fatal().Msg(fmt.Sprintf("cannot create server: %v", err))
 	}
 
 	listener, err := net.Listen("tcp", config.ServerAddress)

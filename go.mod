@@ -4,6 +4,7 @@ go 1.22.2
 
 require (
 	github.com/go-redis/redis/v8 v8.11.5
+	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/jackc/pgx/v5 v5.5.5
 	github.com/rs/zerolog v1.32.0
 	github.com/spf13/viper v1.18.2

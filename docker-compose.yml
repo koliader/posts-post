@@ -11,17 +11,44 @@ services:
       interval: 5s
       timeout: 20s
       retries: 100
-
+  redis:
+    image: redis:7.2.4-alpine3.19
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 5s
+      timeout: 20s
+      retries: 100
+  rabbitmq:
+    image: "rabbitmq:3.12-management-alpine"
+    hostname: "rabbitmq"
+    environment:
+      RABBITMQ_DEFAULT_USER: "user"
+      RABBITMQ_DEFAULT_PASS: "password"
+    ports:
+      - "5673:5673"
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
   api:
     build:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "8080:8080"
+      - "8082:8082"
     environment:
       - DB_SOURCE=postgresql://root:secret@postgres:5432/postsPosts?sslmode=disable
+      - REDIS_URL=redis:6379
+      - RBM_URL=amqp://user:password@rabbitmq:5672/
+      - REDIS_DB_NUMBER=2
+      - SERVER_ADDRESS=0.0.0.0:8082
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
 
     entrypoint: ["/app/start.sh"]

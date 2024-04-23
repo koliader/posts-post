@@ -30,7 +30,7 @@ func NewServer(config util.Config, store db.Store) (*Server, error) {
 
 	redisClient, err := redis_client.NewRedis(config)
 	if err != nil {
-		return nil, fmt.Errorf("error to create redis client")
+		return nil, fmt.Errorf("error to create redis client: %v", err)
 	}
 
 	server := &Server{
